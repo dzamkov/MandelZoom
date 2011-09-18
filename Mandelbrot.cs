@@ -16,12 +16,28 @@ namespace MandelZoom
         public static int Evaluate(Complex Point, int Max)
         {
             int iter = 0;
-            Complex c = Point;
-            while (iter < Max && (Point.Real * Point.Real + Point.Imag * Point.Imag) < 2.0)
+
+            double cr = Point.Real;
+            double ci = Point.Imag;
+            double zr = cr;
+            double zi = ci;
+
+            while (iter < Max)
             {
-                Complex p = Point;
-                Point.Real = p.Real * p.Real - p.Imag * p.Imag + c.Real;
-                Point.Imag = p.Imag * p.Real + p.Real * p.Imag + c.Imag;
+                double ozr = zr;
+                double zis = zi * zi;
+                zr *= zr;
+
+                if (zr + zis > 4.0)
+                    break;
+
+                zr -= zis;
+                zr += cr;
+
+                zi *= 2.0;
+                zi *= ozr;
+                zi += ci;
+
                 iter++;
             }
             return iter;

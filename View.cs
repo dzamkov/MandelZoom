@@ -27,13 +27,14 @@ namespace MandelZoom
                 ZoomVelocity = 0.0
             };
 
-            this.Gradient = new Gradient(100.0, new Color(0.0, 0.0, 1.0), new Gradient.Stop[]
+            this.Gradient = new Gradient(100.0, new Color(0.0f, 0.0f, 1.0f), new Gradient.Stop[]
             {
-                new Gradient.Stop(0.3, new Color(1.0, 0.0, 0.0)),
-                new Gradient.Stop(0.5, new Color(1.0, 1.0, 0.0)),
-                new Gradient.Stop(0.7, new Color(0.0, 1.0, 0.0)),
-                new Gradient.Stop(0.9, new Color(0.0, 1.0, 1.0)),
-            }, new Color(0.0, 0.0, 0.0), 10.0);
+                new Gradient.Stop(0.3, new Color(1.0f, 0.0f, 0.0f)),
+                new Gradient.Stop(0.5, new Color(1.0f, 1.0f, 0.0f)),
+                new Gradient.Stop(0.7, new Color(0.0f, 1.0f, 0.0f)),
+                new Gradient.Stop(0.9, new Color(0.0f, 1.0f, 1.0f)),
+            }, new Color(0.0f, 0.0f, 0.0f));
+            this.Gradient.CreateCache(100);
 
             this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
             this.SetStyle(ControlStyles.UserPaint, true);
@@ -74,38 +75,41 @@ namespace MandelZoom
             Size clientsize = this.ClientSize;
             if (this._Buffer == null)
             {
-                this._Buffer = new Bitmap(clientsize.Width, clientsize.Height);
+                this._Buffer = new Bitmap(clientsize.Width, clientsize.Height, PixelFormat.Format24bppRgb);
             }
             else
             {
                 if (this._Buffer.Size != clientsize)
                 {
                     this._Buffer.Dispose();
-                    this._Buffer = new Bitmap(clientsize.Width, clientsize.Height);
+                    this._Buffer = new Bitmap(clientsize.Width, clientsize.Height, PixelFormat.Format24bppRgb);
                 }
             }
 
             // Draw to bitmap
             unsafe
             {
-                BitmapData bd = this._Buffer.LockBits(new Rectangle(new Point(0, 0), clientsize), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                BitmapData bd = this._Buffer.LockBits(new Rectangle(new Point(0, 0), clientsize), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
                 byte* ptr = (byte*)bd.Scan0.ToPointer();
 
                 int width = bd.Width;
                 int height = bd.Height;
                 Complex tl; double d;
                 this.Camera.Transform(width, height, out tl, out d);
-                for (int x = 0; x < width; x++)
+                for (int y = 0; y < height; y++)
                 {
-                    double r = tl.Real + d * x;
-                    for (int y = 0; y < height; y++)
+                    double i = tl.Imag + d * y;
+                    for (int x = 0; x < width; x++)
                     {
-                        double i = tl.Imag + d * y;
-                        int iter = Mandelbrot.Evaluate(new Complex(r, i) * 4.0, 100);
+                        double r = tl.Real + d * x;
+                        const int max = 100;
+                        int iter = Mandelbrot.Evaluate(new Complex(r, i) * 4.0, max);
 
-                        byte* colptr = ptr + 4 * (x + (y * width));
-                        Color col = this.Gradient.GetColor(iter, 100);
-                        col.Write(colptr);
+                        if (iter == max)
+                            this.Gradient.Final.Write(ptr);
+                        else
+                            this.Gradient.GetColor(iter).Write(ptr);
+                        ptr += 3;
                     }
                 }
 

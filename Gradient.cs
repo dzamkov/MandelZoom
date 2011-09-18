@@ -10,28 +10,39 @@ namespace MandelZoom
     /// </summary>
     public class Gradient
     {
-        public Gradient(double Period, Color Initial, Stop[] Stops, Color Final, double FinalFalloff)
+        public Gradient(double Period, Color Initial, Stop[] Stops, Color Final)
         {
             this.Period = Period;
             this.Initial = Initial;
             this.Stops = Stops;
             this.Final = Final;
-            this.FinalFalloff = FinalFalloff;
         }
 
         /// <summary>
-        /// Gets the color for a fragment with the given iteration count when the given max iteration count is used.
+        /// Creates a cache of the given size for this gradient.
         /// </summary>
-        public Color GetColor(int Iterations, int MaxIterations)
+        public void CreateCache(int Size)
         {
-            if (Iterations == MaxIterations)
-                return this.Final;
+            this._Cache = new Color[Size];
+            double d = 1.0 / (double)Size;
+            for (int t = 0; t < Size; t++)
+            {
+                this._Cache[t] = this._GetPeriodColor(t * d);
+            }
+        }
 
-            double iter = Iterations;
-            double max = MaxIterations;
-            Color pcol = this._GetPeriodColor(iter % this.Period / this.Period);
-            Color fcol = iter > max - this.FinalFalloff ? Color.Mix(pcol, this.Final, (iter - max + this.FinalFalloff) / this.FinalFalloff) : pcol;
-            return fcol;
+        /// <summary>
+        /// Gets the color for a fragment with the given iteration count.
+        /// </summary>
+        public Color GetColor(double Iterations)
+        {
+            if (this._Cache != null)
+            {
+                double scale = this._Cache.Length / this.Period;
+                double index = (Iterations % this.Period) * scale;
+                return this._Cache[(int)index];
+            }
+            return this._GetPeriodColor(Iterations % this.Period / this.Period);
         }
 
         /// <summary>
@@ -97,9 +108,9 @@ namespace MandelZoom
         public readonly Color Final;
 
         /// <summary>
-        /// The amount of iterations below the max iteration amount before the final color starts to fade in.
+        /// Cache for colors in the gradient.
         /// </summary>
-        public readonly double FinalFalloff;
+        private Color[] _Cache;
     }
 
     /// <summary>
@@ -138,7 +149,6 @@ namespace MandelZoom
             Ptr[0] = b;
             Ptr[1] = g;
             Ptr[2] = r;
-            Ptr[3] = 255;
         }
 
         /// <summary>
